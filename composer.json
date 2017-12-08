@@ -1,0 +1,25 @@
+{
+    "name": "kudmni/yandex-metrika",
+    "description": "Обёртка над Яндекс.Метрика",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "PR-CY.RU",
+            "email": "we@pr-cy.ru"
+        }
+    ],
+    "require": {
+        "php": ">=5.5",
+        "guzzlehttp/guzzle": "^6.0"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "4.7.*",
+        "satooshi/php-coveralls": "1.0.1"
+    },
+    "autoload": {
+        "psr-4": {
+            "PrCy\\YandexMetrika\\": "src/"
+        }
+    }
+}
