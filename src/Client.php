@@ -32,8 +32,10 @@ class Client
     protected function getHttpClient()
     {
         if ($this->httpClient === null) {
+            // @codeCoverageIgnoreStart
             $this->setHttpClient(new HttpClient());
         }
+        // @codeCoverageIgnoreEnd
         return $this->httpClient;
     }
 
