@@ -1,7 +1,7 @@
 <?php
 namespace PrCy\YandexMetrika\Exception;
 
-class AccessTokenError
+class AccessTokenError extends \Exception
 {
     
 }

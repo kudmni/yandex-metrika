@@ -2,10 +2,9 @@
 
 namespace PrCy\YandexMetrika;
 
-use \GuzzleHttp\Client;
-use PrCy\YandexMetrika\Exception\InvalidParams;
-use PrCy\YandexMetrika\Exception\InvalidRequestMethod;
-use PrCy\YandexMetrika\Exception\AccessTokenError;
+use \GuzzleHttp\Client as HttpClient;
+use \PrCy\YandexMetrika\Exception\InvalidParams;
+use \PrCy\YandexMetrika\Exception\AccessTokenError;
 
 class Client
 {
@@ -14,7 +13,8 @@ class Client
         'clientSecret' => null
     ];
 
-    private $accessToken = null;
+    protected $accessToken = null;
+    protected $httpClient  = null;
 
     public function __construct($credentials = [])
     {
@@ -24,17 +24,17 @@ class Client
         $this->credentials = array_merge($this->credentials, $credentials);
     }
 
-    public function setClient(Client $client)
+    public function setHttpClient(HttpClient $client)
     {
-        $this->client = $client;
+        $this->httpClient = $client;
     }
 
-    private function getClient()
+    protected function getHttpClient()
     {
-        if ($this->client === null) {
-            $this->setClient(new Client());
+        if ($this->httpClient === null) {
+            $this->setHttpClient(new HttpClient());
         }
-        return $this->client;
+        return $this->httpClient;
     }
 
     public function getAuthUrl()
@@ -48,7 +48,7 @@ class Client
 
     public function getToken($code)
     {
-        $data = $this->rawRequest('POST', 'https://oauth.yandex.ru/token', [
+        $data = $this->post('POST', 'https://oauth.yandex.ru/token', [
             'grant_type'     => 'authorization_code',
             'code'           => $code,
             'client_id'      => $this->credentials['clientId'],
@@ -75,34 +75,28 @@ class Client
 
     public function getUserInfo()
     {
-        return $this->rawRequest('GET', 'https://login.yandex.ru/info', ['format' => 'json']);
+        return $this->get('https://login.yandex.ru/info', ['format' => 'json']);
     }
 
     public function getCounterId($domain)
     {
-        if (empty($domain)) {
-            return false;
-        }
         $noWwwDomain = preg_replace('/^www\./i', '', $domain);
-        $counters = $this->rawRequest('GET', 'http://api-metrika.yandex.ru/counters.json', ['pretty' => 1]);
-        if (empty($counters['counters'])) {
-            return false;
-        }
-        foreach ($counters['counters'] as $counter) {
+        $response    = $this->get('http://api-metrika.yandex.ru/counters.json', ['pretty' => 1]);
+        $counters    = empty($response['counters']) ? [] : $response['counters'];
+        $counterId   = false;
+        foreach ($counters as $counter) {
             if ($counter['site'] == $noWwwDomain || $counter['site'] == 'www.' . $noWwwDomain) {
-                return $counter['id'];
+                $counterId = $counter['id'];
+                break;
             }
         }
-        return false;
+        return $counterId;
     }
 
     public function getKeywordsTable($counterId)
     {
         $keywordsTable = [];
-        if (empty($counterId)) {
-            return $keywordsTable;
-        }
-        $params = [
+        $params        = [
             'id'         => $counterId,
             'dimensions' => 'ym:s:searchPhrase',
             'metrics'    => 'ym:s:visits',
@@ -111,38 +105,53 @@ class Client
             'date2'      => date('Y-m-d', strtotime('-1 day')),
             'limit'      => 150
         ];
-        $keywords = $this->rawRequest(
-            'GET',
-            'https://api-metrika.yandex.ru/stat/v1/data',
-            $params
-        );
-        if (empty($keywords['data'])) {
-            return $keywordsTable;
-        }
-        foreach ($keywords['data'] as $entry) {
-            $keywordsTable[] = ['keyword' => $entry['dimensions'][0]['name'],  'visits' => $entry['metrics'][0]];
+        $response = $this->get('https://api-metrika.yandex.ru/stat/v1/data', $params);
+        $keywords = empty($response['data']) ? [] : $response['data'];
+        foreach ($keywords as $entry) {
+            $keywordsTable[] = [
+                'keyword' => $entry['dimensions'][0]['name'],
+                'visits' => $entry['metrics'][0]
+            ];
         }
         return $keywordsTable;
     }
 
-    protected function rawRequest($method, $url, $params = [])
+    protected function getAuthHeaders()
     {
+        $headers = [];
         if ($this->accessToken) {
-            $params['oauth_token'] = $this->accessToken;
+            $headers['Authorization'] = 'OAuth ' . $this->accessToken;
         }
+        return $headers;
+    }
 
-        $httpClient = $this->getClient();
-        switch ($method) {
-            case 'POST':
-                $response = $httpClient->post($url, ['form_params' => $params]);
-                break;
-            case 'GET':
-                $response = $httpClient->get($url, ['query' => $params]);
-                break;
-            default:
-                throw new InvalidRequestMethod('Unsupported request method: ' . $method);
-        }
+    protected function get($url, $params = [])
+    {
+        $response = $this->getHttpClient()->get(
+            $url,
+            [
+                'query'   => $params,
+                'headers' => $this->getAuthHeaders()
+            ]
+        );
+        return $this->processResponse($response);
+    }
 
+    protected function post($url, $params = [])
+    {
+        $response = $this->getHttpClient()
+            ->post(
+                $url,
+                [
+                    'form_params' => $params,
+                    'headers'     => $this->getAuthHeaders()
+                ]
+            );
+        return $this->processResponse($response);
+    }
+
+    protected function processResponse($response)
+    {
         return json_decode($response->getBody()->getContents(), true);
     }
 }

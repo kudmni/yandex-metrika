@@ -1,7 +1,7 @@
 <?php
 namespace PrCy\YandexMetrika\Exception;
 
-class InvalidParams
+class InvalidParams extends \Exception
 {
     
 }
