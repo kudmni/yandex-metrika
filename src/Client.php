@@ -86,7 +86,7 @@ class Client
     public function getCounterId($domain)
     {
         $noWwwDomain = preg_replace('/^www\./i', '', $domain);
-        $response    = $this->get('http://api-metrika.yandex.ru/counters.json', ['pretty' => 1]);
+        $response    = $this->get('https://api-metrika.yandex.ru/management/v1/counters');
         $counters    = empty($response['counters']) ? [] : $response['counters'];
         $counterId   = false;
         foreach ($counters as $counter) {
