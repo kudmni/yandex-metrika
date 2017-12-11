@@ -50,12 +50,15 @@ class Client
 
     public function getToken($code)
     {
-        $data = $this->post('POST', 'https://oauth.yandex.ru/token', [
-            'grant_type'     => 'authorization_code',
-            'code'           => $code,
-            'client_id'      => $this->credentials['clientId'],
-            'client_secret'  => $this->credentials['clientSecret'],
-        ]);
+        $data = $this->post(
+            'https://oauth.yandex.ru/token',
+            [
+                'grant_type'     => 'authorization_code',
+                'code'           => $code,
+                'client_id'      => $this->credentials['clientId'],
+                'client_secret'  => $this->credentials['clientSecret'],
+            ]
+        );
         if (!$data) {
             throw new AccessTokenError('Unable to get access token by application code');
         }
