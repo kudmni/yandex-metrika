@@ -18,15 +18,6 @@ class ClientTest extends \PHPUnit_Framework_TestCase
         new Client();
     }
 
-    public function testSetHttpClient()
-    {
-        $clientId       = 'clientIdMock';
-        $clientSecret   = 'clientSecretMock';
-        $client         = new Client(['clientId' => $clientId, 'clientSecret' => $clientSecret]);
-        $httpClientMock = $this->getMock('\GuzzleHttp\Client');
-        $client->setHttpClient($httpClientMock);
-    }
-
     public function testGetAuthUrl()
     {
         $clientId        = 'clientIdMock';
@@ -92,7 +83,6 @@ class ClientTest extends \PHPUnit_Framework_TestCase
         $code = 'codeMock';
         $client->getToken($code);
     }
-
 
     public function testGetTokenSuccess()
     {
@@ -173,7 +163,7 @@ class ClientTest extends \PHPUnit_Framework_TestCase
         $responseMock = [
             'counters' => [[
                 'id'   => $counterId,
-                'site' => 'example.com'
+                'site' => 'президент.рф'
             ]]
         ];
         $clientId     = 'clientIdMock';
@@ -186,7 +176,16 @@ class ClientTest extends \PHPUnit_Framework_TestCase
             ->method('get')
             ->willReturn($responseMock);
 
-        $this->assertEquals($counterId, $client->getCounterId('example.com'));
+        $punycodeMock = $this->getMockBuilder('\TrueBV\Punycode')
+            ->disableOriginalConstructor()
+            ->getMock();
+        $punycodeMock->expects($this->once())
+            ->method('decode')
+            ->with('xn--d1abbgf6aiiy.xn--p1ai')
+            ->willReturn('президент.рф');
+        $client->setPunycode($punycodeMock);
+
+        $this->assertEquals($counterId, $client->getCounterId('xn--d1abbgf6aiiy.xn--p1ai'));
     }
 
     public function testGetKeywordsTable()

@@ -5,6 +5,7 @@ namespace PrCy\YandexMetrika;
 use \GuzzleHttp\Client as HttpClient;
 use \PrCy\YandexMetrika\Exception\InvalidParams;
 use \PrCy\YandexMetrika\Exception\AccessTokenError;
+use \TrueBV\Punycode;
 
 class Client
 {
@@ -15,6 +16,7 @@ class Client
 
     protected $accessToken = null;
     protected $httpClient  = null;
+    protected $punycode    = null;
 
     public function __construct($credentials = [])
     {
@@ -37,6 +39,21 @@ class Client
         }
         // @codeCoverageIgnoreEnd
         return $this->httpClient;
+    }
+
+    public function setPunycode(Punycode $punycode)
+    {
+        $this->punycode = $punycode;
+    }
+
+    protected function getPunycode()
+    {
+        if ($this->punycode === null) {
+            // @codeCoverageIgnoreStart
+            $this->setPunycode(new Punycode());
+        }
+        // @codeCoverageIgnoreEnd
+        return $this->punycode;
     }
 
     public function getAuthUrl()
@@ -85,12 +102,16 @@ class Client
 
     public function getCounterId($domain)
     {
-        $noWwwDomain = preg_replace('/^www\./i', '', $domain);
-        $response    = $this->get('https://api-metrika.yandex.ru/management/v1/counters');
-        $counters    = empty($response['counters']) ? [] : $response['counters'];
-        $counterId   = false;
+        $domain = preg_replace('/^www\./i', '', $domain);
+        // Decode domain, if punycode is detected
+        if (strpos($domain, 'xn--') === 0) {
+            $domain = $this->getPunycode()->decode($domain);
+        }
+        $response  = $this->get('https://api-metrika.yandex.ru/management/v1/counters');
+        $counters  = empty($response['counters']) ? [] : $response['counters'];
+        $counterId = false;
         foreach ($counters as $counter) {
-            if ($counter['site'] == $noWwwDomain || $counter['site'] == 'www.' . $noWwwDomain) {
+            if ($counter['site'] == $domain || $counter['site'] == 'www.' . $domain) {
                 $counterId = $counter['id'];
                 break;
             }
