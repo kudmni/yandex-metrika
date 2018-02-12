@@ -8,7 +8,7 @@ use \PrCy\YandexMetrika\Client;
  * Class ClientTest
  * @package PrCy\YandexMetrika
  */
-class ClientTest extends \PHPUnit_Framework_TestCase
+class ClientTest extends \PHPUnit\Framework\TestCase
 {
     /**
      * @expectedException \PrCy\YandexMetrika\Exception\InvalidParams
@@ -22,13 +22,26 @@ class ClientTest extends \PHPUnit_Framework_TestCase
     {
         $clientId        = 'clientIdMock';
         $clientSecret    = 'clientSecretMock';
+        $scope           = 'scopeMock';
         $client          = new Client(['clientId' => $clientId, 'clientSecret' => $clientSecret]);
-        $url             = $client->getAuthUrl();
+        $url             = $client->getAuthUrl(['scope' => $scope]);
         $this->assertEquals(
-            'https://oauth.yandex.ru/authorize?response_type=code&client_id=' . $clientId,
+            'https://oauth.yandex.ru/authorize?response_type=code&client_id=' . $clientId . '&scope=' . $scope,
             $url
         );
     }
+
+    /**
+     * @expectedException \PrCy\YandexMetrika\Exception\InvalidParams
+     */
+    public function testGetAuthUrlWithException()
+    {
+        $clientId        = 'clientIdMock';
+        $clientSecret    = 'clientSecretMock';
+        $client          = new Client(['clientId' => $clientId, 'clientSecret' => $clientSecret]);
+        $client->getAuthUrl(['foo' => 'bar']);
+    }
+
 
     /**
      * @expectedException \PrCy\YandexMetrika\Exception\AccessTokenError

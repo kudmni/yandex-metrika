@@ -56,13 +56,41 @@ class Client
         return $this->punycode;
     }
 
-    public function getAuthUrl()
+    /**
+    * Формирование запроса кода подтверждения
+    * @param array $params - массив с возможными ключами
+    * device_id - идентификатор устройства
+    * device_name - имя устройства
+    * login_hint - имя пользователя или электронный адрес
+    * scope - запрашиваемые необходимые права
+    * optional_scope -запрашиваемые опциональные права
+    * force_confirm - признак того, что у пользователя обязательно нужно запросить разрешение на доступ к аккаунту, обрабатывается, если для него указано значение «yes», «true» или «1»
+    * state -  произвольная строка
+    */
+    public function getAuthUrl($params = [])
     {
-        $params = [
+        $defaultParams = [
             'response_type'  => 'code',
-            'client_id'      => $this->credentials['clientId']
+            'client_id'      => $this->credentials['clientId'],
+            'device_id'      => null,
+            'device_name'    => null,
+            'login_hint'     => null,
+            'scope'          => null,
+            'optional_scope' => null,
+            'force_confirm'  => null,
+            'state'          => null
         ];
-        return 'https://oauth.yandex.ru/authorize?' . http_build_query($params);
+        $mergedParams = array_merge($defaultParams, $params);
+        // Удаляем пустые значения
+        $nonEmptyParams = array_filter($mergedParams, function($item){
+            return !empty($item);
+        });
+        // Не пропускаем неизвестные параметры
+        $unknownParams = array_diff_key($nonEmptyParams, $defaultParams);
+        if (count($unknownParams)) {
+            throw new InvalidParams("Unknown parameter(s): " . join(', ', array_keys($unknownParams)));
+        }
+        return 'https://oauth.yandex.ru/authorize?' . http_build_query($nonEmptyParams);
     }
 
     public function getToken($code)
