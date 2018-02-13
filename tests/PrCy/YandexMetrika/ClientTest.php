@@ -8,7 +8,7 @@ use \PrCy\YandexMetrika\Client;
  * Class ClientTest
  * @package PrCy\YandexMetrika
  */
-class ClientTest extends \PHPUnit\Framework\TestCase
+class ClientTest extends \PHPUnit_Framework_TestCase
 {
     /**
      * @expectedException \PrCy\YandexMetrika\Exception\InvalidParams
